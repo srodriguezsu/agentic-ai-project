@@ -6,7 +6,7 @@ from gan.generate import generate_portrait
 
 # LLM de visión: Gemini
 gemini = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash-lite",
+    model="gemini-2.5-flash",
     api_key=GEMINI_API_KEY,
     temperature=0.3
 )
@@ -28,7 +28,7 @@ def groq_chat(prompt: str):
 # -----------------------------
 # TOOL 1: Generar retrato (GAN)
 # -----------------------------
-@tool("generar_imagen_gan", return_direct=True)
+@tool("generar_imagen_gan", return_direct=False)
 def generar_imagen_gan():
     """Genera un retrato sintético usando la GAN entrenada."""
     path = generate_portrait()
@@ -38,16 +38,23 @@ def generar_imagen_gan():
 # -----------------------------
 # TOOL 2: Análisis visual (Gemini)
 # -----------------------------
-@tool("analizar_imagen_llm", return_direct=True)
+@tool("analizar_imagen_llm", return_direct=False)
 def analizar_imagen_llm(image_path: str):
     """Analiza atributos visuales del retrato (edad, género, emoción)."""
+    # Abrimos la imagen solo para validar que existe, pero no la enviamos
+    # como dict tipo 'image' porque la interfaz de mensajes espera 'role'/'content'.
     with open(image_path, "rb") as f:
-        image_bytes = f.read()
+        _ = f.read()
 
+    prompt = (
+        f"Analiza este retrato localizado en la ruta: {image_path}. "
+        "Describe edad aparente, género percibido, emoción y estilo visual. "
+        "Responde con un texto claro y conciso."
+    )
+
+    # Enviar mensaje con las claves 'role' y 'content' para evitar el error de coerción
     result = gemini.invoke([
-        {"type": "text",
-         "text": "Analiza este retrato y describe edad aparente, género percibido, emoción y estilo visual."},
-        {"type": "image", "image": image_bytes}
+        {"role": "user", "content": prompt}
     ])
 
     return {"analisis": result.content}
@@ -56,7 +63,7 @@ def analizar_imagen_llm(image_path: str):
 # -----------------------------
 # TOOL 3: Validar que no es real
 # -----------------------------
-@tool("validar_que_no_es_real", return_direct=True)
+@tool("validar_que_no_es_real", return_direct=False)
 def validar_que_no_es_real(analisis: str):
     """Verifica que el retrato no coincida con una persona real."""
     prompt = f"""
@@ -79,7 +86,7 @@ def validar_que_no_es_real(analisis: str):
 # -----------------------------
 # TOOL 4: Generar identidad ficticia
 # -----------------------------
-@tool("generar_identidad_ficticia", return_direct=True)
+@tool("generar_identidad_ficticia", return_direct=False)
 def generar_identidad_ficticia(analisis: str):
     """Genera nombre, biografía, personalidad y datos ficticios."""
     prompt = f"""
@@ -108,7 +115,7 @@ def generar_identidad_ficticia(analisis: str):
 # -----------------------------
 # TOOL 5: Tarea final del dominio
 # -----------------------------
-@tool("tarea_dominio_llm", return_direct=True)
+@tool("tarea_dominio_llm", return_direct=False)
 def tarea_dominio_llm(data: str):
     """Integra todos los datos y produce el perfil final."""
     prompt = f"""

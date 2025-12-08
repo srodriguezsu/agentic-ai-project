@@ -1,5 +1,4 @@
 from langchain.agents import create_agent
-from langchain_core.messages import HumanMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 from agent.tools import (
     generar_imagen_gan,
@@ -19,7 +18,7 @@ def create_identity_agent():
 
     # Gemini será el modelo principal del agente (razonamiento + selección de tools)
     llm = ChatGoogleGenerativeAI(
-        model="gemini-2.5-flash-lite",
+        model="gemini-2.5-flash",
         api_key=GEMINI_API_KEY,
         temperature=0.3
     )
@@ -80,3 +79,38 @@ def create_identity_agent():
     )
 
     return agent
+
+
+def run_full_workflow():
+    """Orquesta el workflow completo llamando las herramientas en secuencia.
+
+    Esto evita depender del agente de LangChain para encadenar tool_calls y
+    garantiza que el proceso no se detenga después de la primera herramienta.
+    """
+    # Paso 1: generar imagen
+    # Las herramientas expuestas son objetos BaseTool; usarlas con .run()
+    gen_res = generar_imagen_gan.run()
+    image_path = gen_res.get("imagen_generada")
+
+    # Paso 2: analizar imagen
+    anal_res = analizar_imagen_llm.run(image_path)
+    analisis = anal_res.get("analisis")
+
+    # Paso 3: validar que no es real
+    val_res = validar_que_no_es_real.run(analisis)
+
+    # Paso 4: generar identidad ficticia
+    id_res = generar_identidad_ficticia.run(analisis)
+
+    # Paso 5: tarea final del dominio
+    # Pasamos todos los datos previos como entrada
+    aggregate = {
+        "imagen": image_path,
+        "analisis": analisis,
+        "validacion": val_res.get("verificacion"),
+        "identidad": id_res.get("identidad")
+    }
+
+    final_res = tarea_dominio_llm.run(str(aggregate))
+
+    return final_res
