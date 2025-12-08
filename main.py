@@ -1,5 +1,5 @@
-from agent.agent import create_identity_agent
 from langchain_core.messages import HumanMessage
+from agent.agent import create_identity_agent
 
 agent = create_identity_agent()
 

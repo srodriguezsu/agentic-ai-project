@@ -29,9 +29,9 @@ def groq_chat(prompt: str):
 # TOOL 1: Generar retrato (GAN)
 # -----------------------------
 @tool("generar_imagen_gan", return_direct=True)
-def generar_imagen_gan(descripcion: str = ""):
+def generar_imagen_gan():
     """Genera un retrato sintético usando la GAN entrenada."""
-    path = generate_portrait(descripcion)
+    path = generate_portrait()
     return {"imagen_generada": path}
 
 
