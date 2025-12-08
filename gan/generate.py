@@ -1,2 +1,7 @@
+import random
+
+
 def generate_portrait():
-    return None
+    number = random.randint(1000, 9999)
+    link = "/images/retrato_" + str(number) + ".png"
+    return link
