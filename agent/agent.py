@@ -1,6 +1,6 @@
 from langchain.agents import create_agent
 from langchain_core.messages import HumanMessage
-from groq import Groq
+from langchain_google_genai import ChatGoogleGenerativeAI
 from agent.tools import (
     generar_imagen_gan,
     analizar_imagen_llm,
@@ -8,13 +8,21 @@ from agent.tools import (
     generar_identidad_ficticia,
     tarea_dominio_llm,
 )
-from agent.config import GROQ_API_KEY
+from agent.config import GEMINI_API_KEY
 
 
 def create_identity_agent():
-    """Crea el agente de identidades ficticias usando la API moderna de LangChain."""
+    """
+    Crea el agente de identidades ficticias usando la API moderna de LangChain,
+    con Gemini como el modelo principal para el reasoning general del agente.
+    """
 
-    llm = Groq(api_key=GROQ_API_KEY)
+    # Gemini será el modelo principal del agente (razonamiento + selección de tools)
+    llm = ChatGoogleGenerativeAI(
+        model="gemini-2.5-flash-lite",
+        api_key=GEMINI_API_KEY,
+        temperature=0.3
+    )
 
     tools = [
         generar_imagen_gan,
@@ -25,16 +33,18 @@ def create_identity_agent():
     ]
 
     system_prompt = """
-    Eres un agente experto en la generación de identidades humanas ficticias.
-    Dispones de herramientas que te permiten:
-    - generar retratos sintéticos,
-    - analizarlos visualmente,
-    - validar que no representen a personas reales,
-    - generar perfiles demográficos y biográficos,
-    - entregar un perfil final completo.
+    Eres un agente especializado en crear identidades humanas completamente ficticias.
+    Tienes acceso a varias herramientas que te permiten:
+
+    - Generar retratos sintéticos mediante una GAN entrenada.
+    - Analizar retratos visualmente (edad, género, emoción, estilo).
+    - Validar que el retrato NO pertenezca a una persona real.
+    - Generar identidades ficticias completas basadas en el análisis.
+    - Producir un perfil final coherente y listo para usar.
 
     Usa las herramientas cuando sea necesario.
-    Siempre entrega resultados claros, seguros y en JSON cuando sea posible.
+    Si no necesitas ninguna herramienta, responde directamente.
+    Siempre prioriza el uso de JSON cuando corresponda.
     """
 
     agent = create_agent(

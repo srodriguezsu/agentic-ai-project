@@ -6,13 +6,23 @@ from gan.generate import generate_portrait
 
 # LLM de visión: Gemini
 gemini = ChatGoogleGenerativeAI(
-    model="gemini-1.5-pro",
+    model="gemini-2.5-flash-lite",
     api_key=GEMINI_API_KEY,
     temperature=0.3
 )
 
-# LLM de razonamiento: Groq (Llama 3)
+# Cliente oficial de Groq
 groq = Groq(api_key=GROQ_API_KEY)
+
+
+def groq_chat(prompt: str):
+    """Función auxiliar para enviar prompts al modelo Groq."""
+    response = groq.chat.completions.create(
+        model="llama3-70b-8192",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.3
+    )
+    return response.choices[0].message["content"]
 
 
 # -----------------------------
@@ -61,7 +71,8 @@ def validar_que_no_es_real(analisis: str):
         "explicacion": "texto"
     }}
     """
-    result = groq.invoke(prompt)
+
+    result = groq_chat(prompt)
     return {"verificacion": result}
 
 
@@ -90,7 +101,7 @@ def generar_identidad_ficticia(analisis: str):
     }}
     """
 
-    result = groq.invoke(prompt)
+    result = groq_chat(prompt)
     return {"identidad": result}
 
 
@@ -109,5 +120,5 @@ def tarea_dominio_llm(data: str):
     Entrega un JSON cohesivo con toda la información.
     """
 
-    result = groq.invoke(prompt)
+    result = groq_chat(prompt)
     return {"perfil_final": result}
