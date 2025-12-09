@@ -15,7 +15,7 @@ gemini = ChatGoogleGenerativeAI(
 groq = Groq(api_key=GROQ_API_KEY)
 
 
-def groq_chat(prompt: str, model: str = "llama3-70b-8192") -> str:
+def groq_chat(prompt: str, model: str = "llama-3.1-8b-instant") -> str:
     """Función auxiliar para enviar prompts al modelo Groq."""
     response = groq.chat.completions.create(
         model=model,
@@ -41,22 +41,28 @@ def generar_imagen_gan():
 @tool("analizar_imagen_llm", return_direct=False)
 def analizar_imagen_llm(image_path: str):
     """Analiza atributos visuales del retrato (edad, género, emoción)."""
-    # Abrimos la imagen solo para validar que existe, pero no la enviamos
-    # como dict tipo 'image' porque la interfaz de mensajes espera 'role'/'content'.
+    # Validar y codificar la imagen como Data URI para enviarla en el mensaje
+    import base64, mimetypes, os
+
+    if not os.path.exists(image_path):
+        return {"error": "ruta de imagen no encontrada"}
+
     with open(image_path, "rb") as f:
-        _ = f.read()
+        img_bytes = f.read()
+
+    mime, _ = mimetypes.guess_type(image_path)
+    mime = mime or "application/octet-stream"
+    b64 = base64.b64encode(img_bytes).decode("utf-8")
+    data_uri = f"data:{mime};base64,{b64}"
 
     prompt = (
-        f"Analiza este retrato localizado en la ruta: {image_path}. "
-        "Describe edad aparente, género percibido, emoción y estilo visual. "
+        f"Adjunto una imagen en formato Data URI:\n\n"
+        f"![imagen]({data_uri})\n\n"
+        "Analiza este retrato: describe edad aparente, género percibido, emoción y estilo visual. "
         "Responde con un texto claro y conciso."
     )
 
-    # Enviar mensaje con las claves 'role' y 'content' para evitar el error de coerción
-    result = gemini.invoke([
-        {"role": "user", "content": prompt}
-    ])
-
+    result = gemini.invoke([{"role": "user", "content": prompt}])
     return {"analisis": result.content}
 
 
