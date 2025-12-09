@@ -1,8 +1,13 @@
+import base64
+import mimetypes
+
 from langchain.tools import tool
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain.messages import HumanMessage
 from groq import Groq
 from agent.config import GEMINI_API_KEY, GROQ_API_KEY
 from gan.generate import generate_portrait
+import os
 
 # LLM de visión: Gemini
 gemini = ChatGoogleGenerativeAI(
@@ -15,14 +20,15 @@ gemini = ChatGoogleGenerativeAI(
 groq = Groq(api_key=GROQ_API_KEY)
 
 
-def groq_chat(prompt: str, model: str = "llama-3.1-8b-instant") -> str:
-    """Función auxiliar para enviar prompts al modelo Groq."""
+def groq_chat(prompt: str, model: str = "llama-3.1-8b-instant", max_tokens: int = 512) -> str:
+    """Función auxiliar para enviar prompts al modelo Groq con límite de tokens y manejo de error."""
     response = groq.chat.completions.create(
         model=model,
         messages=[{"role": "user", "content": prompt}],
-        temperature=0.3
+        temperature=0.3,
+        max_tokens=max_tokens
     )
-    return response.choices[0].message["content"]
+    return response.choices[0].message.content
 
 
 # -----------------------------
@@ -40,29 +46,39 @@ def generar_imagen_gan():
 # -----------------------------
 @tool("analizar_imagen_llm", return_direct=False)
 def analizar_imagen_llm(image_path: str):
-    """Analiza atributos visuales del retrato (edad, género, emoción)."""
-    # Validar y codificar la imagen como Data URI para enviarla en el mensaje
-    import base64, mimetypes, os
+    """Analiza atributos visuales del retrato (edad, género, emoción) usando Gemini Vision."""
 
     if not os.path.exists(image_path):
         return {"error": "ruta de imagen no encontrada"}
 
-    with open(image_path, "rb") as f:
-        img_bytes = f.read()
+    image_bytes = open(image_path, "rb").read()
+    image_base64 = base64.b64encode(image_bytes).decode("utf-8")
 
     mime, _ = mimetypes.guess_type(image_path)
-    mime = mime or "application/octet-stream"
-    b64 = base64.b64encode(img_bytes).decode("utf-8")
-    data_uri = f"data:{mime};base64,{b64}"
+    mime = mime or "image/jpeg"
 
-    prompt = (
-        f"Adjunto una imagen en formato Data URI:\n\n"
-        f"![imagen]({data_uri})\n\n"
-        "Analiza este retrato: describe edad aparente, género percibido, emoción y estilo visual. "
-        "Responde con un texto claro y conciso."
+    message = HumanMessage(
+        content=[
+            {
+                "type": "text",
+                "text": (
+                    "Analiza este retrato y describe brevemente:\n"
+                    "- edad aparente\n"
+                    "- género percibido\n"
+                    "- emoción principal\n"
+                    "- estilo visual"
+                )
+            },
+            {
+                "type": "image",
+                "base64": image_base64,
+                "mime_type": mime,
+            },
+        ]
     )
 
-    result = gemini.invoke([{"role": "user", "content": prompt}])
+    result = gemini.invoke([message])
+
     return {"analisis": result.content}
 
 
