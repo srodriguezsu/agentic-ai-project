@@ -15,10 +15,10 @@ gemini = ChatGoogleGenerativeAI(
 groq = Groq(api_key=GROQ_API_KEY)
 
 
-def groq_chat(prompt: str):
+def groq_chat(prompt: str, model: str = "llama3-70b-8192") -> str:
     """Función auxiliar para enviar prompts al modelo Groq."""
     response = groq.chat.completions.create(
-        model="llama3-70b-8192",
+        model=model,
         messages=[{"role": "user", "content": prompt}],
         temperature=0.3
     )
