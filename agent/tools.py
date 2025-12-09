@@ -66,6 +66,8 @@ def analizar_imagen_llm(image_path: str):
                     "- edad aparente\n"
                     "- género percibido\n"
                     "- emoción principal\n"
+                    "- características distintivas\n"
+                    "- cualquier otro detalle relevante\n"
                 )
             },
             {
