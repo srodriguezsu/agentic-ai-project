@@ -40,6 +40,7 @@ def groq_chat(prompt: str, model: str = "llama-3.1-8b-instant", max_tokens: int 
 @tool("generar_imagen_gan", return_direct=False)
 def generar_imagen_gan():
     """Genera un retrato sintético usando la GAN entrenada."""
+    print('Generando retrato sintético...')
     path = generate_portrait()
     return {"imagen_generada": path}
 
@@ -50,6 +51,7 @@ def generar_imagen_gan():
 @tool("analizar_imagen_llm", return_direct=False)
 def analizar_imagen_llm(image_path: str):
     """Analiza atributos visuales del retrato (edad, género, emoción) usando Gemini Vision."""
+    print("Analizando imagen...")
 
     if not os.path.exists(image_path):
         return {"error": "ruta de imagen no encontrada"}
@@ -92,6 +94,7 @@ def analizar_imagen_llm(image_path: str):
 @tool("validar_que_no_es_real", return_direct=False)
 def validar_que_no_es_real(analisis: str):
     """Verifica que el retrato no coincida con una persona real."""
+    print("Validando que el retrato no coincida con una persona real...")
     prompt = f"""
     Basado en este análisis visual:
 
@@ -115,6 +118,7 @@ def validar_que_no_es_real(analisis: str):
 @tool("generar_identidad_ficticia", return_direct=False)
 def generar_identidad_ficticia(analisis: str):
     """Genera nombre, biografía, personalidad y datos ficticios."""
+    print("Generando identidad ficticia...")
     prompt = f"""
     Con base en este análisis del rostro:
 
@@ -152,6 +156,7 @@ def tarea_dominio_llm(data: str):
 
     Entrega un JSON cohesivo con toda la información.
     """
+    print("Tarea dominio llm...")
 
     result = groq_chat(prompt)
     return {"perfil_final": result}
@@ -161,26 +166,30 @@ def tarea_dominio_llm(data: str):
 # TOOL 6: Guardar perfil en CSV
 # -----------------------------
 @tool("guardar_perfil_csv", return_direct=False)
-def guardar_perfil_csv(perfil, csv_path: str = "profiles.csv"):
+def guardar_perfil_csv(perfil: str = "", csv_path: str = "profiles.csv"):
     """Guarda un perfil (JSON string o dict) en un CSV local.
 
     Args:
-        perfil: dict o string (idealmente JSON) con la estructura generada por la herramienta.
+        perfil: JSON string (preferible) o texto plano con la estructura generada por la herramienta.
+                Se declara como str para que la librería pueda generar correctamente el esquema.
         csv_path: ruta del CSV donde se almacenarán los perfiles.
 
     Devuelve:
-        dict con status y ruta del archivo.
+        dict con status, csv_path y message (texto amigable).
     """
+    print("Guardando perfil...")
+    # Si no se proporciona perfil, devolver un error claro (evita None en el esquema)
+    if not perfil:
+        return {"status": "error", "error": "perfil vacío", "message": "No se proporcionó ningún perfil para guardar."}
+
     # Normalizar perfil a dict si es posible
     perfil_dict = None
-    if isinstance(perfil, dict):
-        perfil_dict = perfil
-    else:
-        # intentar parsear JSON
-        try:
-            perfil_dict = json.loads(perfil)
-        except Exception:
-            perfil_dict = None
+    # Si la entrada parece ser ya una representación de dict (no probable aquí porque tipado como str),
+    # intentamos parsearla como JSON.
+    try:
+        perfil_dict = json.loads(perfil)
+    except Exception:
+        perfil_dict = None
 
     # Campos previsibles para columnas
     cols = [
@@ -229,6 +238,6 @@ def guardar_perfil_csv(perfil, csv_path: str = "profiles.csv"):
                 writer.writeheader()
             writer.writerow(row)
     except Exception as e:
-        return {"status": "error", "error": str(e)}
+        return {"status": "error", "error": str(e), "message": f"No se pudo guardar el perfil: {e}"}
 
-    return {"status": "ok", "csv_path": csv_path}
+    return {"status": "ok", "csv_path": csv_path, "message": f"Perfil guardado en {csv_path}"}
