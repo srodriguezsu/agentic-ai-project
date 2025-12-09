@@ -1,0 +1,2 @@
+timestamp,nombre,apellido,edad_aproximada,genero_percibido,ocupacion,personalidad,hobbies,biografia,raw_json
+2025-12-09T11:57:58.169921,,,,,,,,,"{""Nombre"": ""Ana García"", ""Edad"": 25, ""Género"": ""Femenino"", ""Ocupación"": ""Estudiante"", ""Personalidad"": ""Curiosa, amable, enérgica"", ""Biografía"": ""Ana es una estudiante de literatura apasionada por la poesía y los viajes. Le encanta explorar nuevas culturas y aprender idiomas. Sueña con escribir su propia novela y recorrer el mundo.""}"
