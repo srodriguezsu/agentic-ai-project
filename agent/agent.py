@@ -6,8 +6,10 @@ from agent.tools import (
     validar_que_no_es_real,
     generar_identidad_ficticia,
     tarea_dominio_llm,
+    guardar_perfil_csv,  # agregada la nueva herramienta
 )
 from agent.config import GEMINI_API_KEY
+import json
 
 
 def create_identity_agent():
@@ -29,6 +31,7 @@ def create_identity_agent():
         validar_que_no_es_real,
         generar_identidad_ficticia,
         tarea_dominio_llm,
+        guardar_perfil_csv,  # añadir a tools
     ]
 
     system_prompt = """
@@ -81,42 +84,3 @@ def create_identity_agent():
     return agent
 
 
-def run_full_workflow():
-    """Orquesta el workflow completo llamando las herramientas en secuencia.
-
-    Esto evita depender del agente de LangChain para encadenar tool_calls y
-    garantiza que el proceso no se detenga después de la primera herramienta.
-    """
-    # Paso 1: generar imagen
-    # Las herramientas expuestas son objetos BaseTool; usarlas con .run()
-    print("Generando imagen...")
-    gen_res = generar_imagen_gan.run(None)
-    image_path = gen_res.get("imagen_generada")
-
-    # Paso 2: analizar imagen
-    print("Analizando imagen...")
-    anal_res = analizar_imagen_llm.run(image_path)
-    analisis = anal_res.get("analisis")
-    print(analisis)
-
-    # Paso 3: validar que no es real
-    print("Validando que no es real...")
-    val_res = validar_que_no_es_real.run(analisis)
-
-    # Paso 4: generar identidad ficticia
-    print("Generando identidad ficticia...")
-    id_res = generar_identidad_ficticia.run(analisis)
-
-    # Paso 5: tarea final del dominio
-    print("Ejecutando tarea final del dominio...")
-    # Pasamos todos los datos previos como entrada
-    aggregate = {
-        "imagen": image_path,
-        "analisis": analisis,
-        "validacion": val_res.get("verificacion"),
-        "identidad": id_res.get("identidad")
-    }
-
-    final_res = tarea_dominio_llm.run(str(aggregate))
-
-    return final_res

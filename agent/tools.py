@@ -1,5 +1,8 @@
 import base64
 import mimetypes
+import csv
+import json
+from datetime import datetime
 
 from langchain.tools import tool
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -152,3 +155,80 @@ def tarea_dominio_llm(data: str):
 
     result = groq_chat(prompt)
     return {"perfil_final": result}
+
+
+# -----------------------------
+# TOOL 6: Guardar perfil en CSV
+# -----------------------------
+@tool("guardar_perfil_csv", return_direct=False)
+def guardar_perfil_csv(perfil, csv_path: str = "profiles.csv"):
+    """Guarda un perfil (JSON string o dict) en un CSV local.
+
+    Args:
+        perfil: dict o string (idealmente JSON) con la estructura generada por la herramienta.
+        csv_path: ruta del CSV donde se almacenarán los perfiles.
+
+    Devuelve:
+        dict con status y ruta del archivo.
+    """
+    # Normalizar perfil a dict si es posible
+    perfil_dict = None
+    if isinstance(perfil, dict):
+        perfil_dict = perfil
+    else:
+        # intentar parsear JSON
+        try:
+            perfil_dict = json.loads(perfil)
+        except Exception:
+            perfil_dict = None
+
+    # Campos previsibles para columnas
+    cols = [
+        "timestamp",
+        "nombre",
+        "apellido",
+        "edad_aproximada",
+        "genero_percibido",
+        "ocupacion",
+        "personalidad",
+        "hobbies",
+        "biografia",
+        "raw_json"
+    ]
+
+    # Construir la fila base
+    row = {c: "" for c in cols}
+    row["timestamp"] = datetime.utcnow().isoformat()
+
+    if perfil_dict:
+        # Extraer campos comunes si existen
+        row["nombre"] = perfil_dict.get("nombre", "")
+        row["apellido"] = perfil_dict.get("apellido", "")
+        row["edad_aproximada"] = perfil_dict.get("edad_aproximada", "")
+        row["genero_percibido"] = perfil_dict.get("genero_percibido", "")
+        row["ocupacion"] = perfil_dict.get("ocupacion", "")
+        row["personalidad"] = perfil_dict.get("personalidad", "")
+        hobbies = perfil_dict.get("hobbies", "")
+        # asegurarse que hobbies sea string
+        if isinstance(hobbies, (list, tuple)):
+            row["hobbies"] = json.dumps(hobbies, ensure_ascii=False)
+        else:
+            row["hobbies"] = str(hobbies)
+        row["biografia"] = perfil_dict.get("biografia", "")
+        row["raw_json"] = json.dumps(perfil_dict, ensure_ascii=False)
+    else:
+        # No se pudo parsear: guardar todo en raw_json
+        row["raw_json"] = str(perfil)
+
+    # Escribir/añadir al CSV
+    file_exists = os.path.exists(csv_path)
+    try:
+        with open(csv_path, mode="a", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=cols)
+            if not file_exists:
+                writer.writeheader()
+            writer.writerow(row)
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+    return {"status": "ok", "csv_path": csv_path}
